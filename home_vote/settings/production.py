@@ -3,7 +3,7 @@ from home_vote.settings import base
 
 DEBUG = False
 
-ALLOWED_HOSTS = ['tm30-api.herokuapp.com']
+ALLOWED_HOSTS = ['emale-meals.herokuapp.com']
 
 
 DATABASES = {
