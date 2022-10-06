@@ -13,6 +13,6 @@ load_dotenv(find_dotenv())
 
 from django.core.asgi import get_asgi_application
 
-configuration = os.getenv('ENVIRONMENT')
+configuration = os.getenv('ENVIRONMENT').lower()
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', f'home_vote.settings.{configuration}')
 application = get_asgi_application()

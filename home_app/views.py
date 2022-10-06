@@ -1,7 +1,7 @@
 from rest_framework.decorators import action
 from rest_framework.views import APIView
 from .models import ComUserChoice, MealList, VendorMeal
-from home_accounts.permissions import IsVendor, IsUserAuthenticated, IsAdminOnly
+from home_accounts.permissions import IsVendor, IsUserAuthenticated, IsAdminOnly, IsUser
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.decorators import action, api_view, authentication_classes, permission_classes
@@ -11,13 +11,11 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework.exceptions import NotFound, PermissionDenied
 from datetime import datetime    
 
-
 today = datetime.now()
 day = today.strftime("%a")
 day_num = today.strftime("%d")
 month = today.strftime("%B")
 year = today.strftime("%Y")
-
 
 class MealListView(APIView):
 
@@ -51,9 +49,9 @@ class MealListView(APIView):
            It is only accessible to admin users and vendors.
         """
         data = {}
-        data['meal1'] = request.data['meal1']
-        data['meal2'] = request.data['meal2']
-        data['meal3'] = request.data['meal3']
+        data['meal_id_1'] = request.data['meal_id_1']
+        data['meal_id_2'] = request.data['meal_id_2']
+        data['meal_id_3'] = request.data['meal_id_3']
         data['day'] = day
         data['day_num'] = day_num
         data['month'] = month
@@ -68,16 +66,45 @@ class MealListView(APIView):
                     return Response(data={'message': 'Cannot post two meal lists in a day. Try updating previous meal list.'}, status=status.HTTP_400_BAD_REQUEST)
             except MealList.DoesNotExist:
                 serializer = MealListSerializer2(data=data)
-                
                 if serializer.is_valid():
-                    serializer.save()
+                    meal1 = serializer.validated_data['meal_id_1']
+                    meal2 = serializer.validated_data['meal_id_2']
+                    meal3 = serializer.validated_data['meal_id_3']
                     
-                    data = {
-                        "message":"success"
-                    }
+                    if meal1 != meal2 and meal1 != meal3:
 
-                    return Response(data, status = status.HTTP_200_OK)
+                        if meal2 != meal1 and meal2 != meal3: 
 
+                            if meal3 != meal1 and meal3 != meal2: 
+
+                                if meal1 == meal2 == meal3:
+                                    raise PermissionDenied(detail={'message':'cannot pick one meal more than once'})
+
+                                else:
+                                    try:
+                                        meal1_check = VendorMeal.objects.get(meal=meal1, day_num=day_num, month=month, year=year)
+                                        meal2_check = VendorMeal.objects.get(meal=meal2, day_num=day_num, month=month, year=year)
+                                        meal3_check = VendorMeal.objects.get(meal=meal3, day_num=day_num, month=month, year=year)
+
+                                        if meal1_check and meal2_check and meal3_check:
+                                            serializer.save()
+                                            
+                                            data = {
+                                                "message":"success"
+                                            }
+
+                                            return Response(data, status = status.HTTP_200_OK)
+                                    except VendorMeal.DoesNotExist:
+                                        raise NotFound(detail={'message': 'meal1 or meal2 or meal3 is not available for today'})
+                                        
+                            else:
+                                raise PermissionDenied(detail={'message':'cannot pick one meal more than once'})
+
+                        else:
+                            raise PermissionDenied(detail={'message':'cannot pick one meal more than once'})
+
+                    else:
+                        raise PermissionDenied(detail={'message':'cannot pick one meal more than once'})
                 else:
                     data = {
                         "message":"failed",
@@ -94,10 +121,34 @@ class MealListView(APIView):
         """
         try:
             mealist = MealList.objects.get(day_num=day_num, month=month, year=year)
+    
             if mealist:            
                 serializer = MealListSerializer(mealist, data=request.data, partial=True)
                 
                 if serializer.is_valid():
+                    serial = []
+                    for obj in serializer.validated_data:
+                        serial.append(obj)
+                        
+                    new = []
+
+                    for i in serial:
+                        valid = serializer.validated_data[i]
+                        new.append(valid)
+                    
+                    for i in range(0, len(new)):
+                        try:
+                            food = MealList.objects.get(day_num=day_num, month=month, year=year)
+                            print(food)
+                            vendor = VendorMeal.objects.get(meal=new[i], day_num=day_num, month=month, year=year)
+                            if vendor != food.meal_id_1 and vendor != food.meal_id_2 and vendor != food.meal_id_3:
+                                continue
+                            else:
+                                raise PermissionDenied(detail={"message": "cannot update meal list, meal already exists in today's meal list"})
+
+                        except VendorMeal.DoesNotExist:
+                            raise NotFound(detail={'message': 'cannot update meal list, meal or meals provided are not available for today'})
+
                     serializer.save()
                     
                     data = {
@@ -134,6 +185,9 @@ class MealListView(APIView):
 
 class MealOrderView(APIView):
 
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsUser]
+    
     def get_meal_list(self, day_num, month, year):
         try:
             return MealList.objects.get(day_num=day_num, month=month, year=year)
@@ -142,24 +196,22 @@ class MealOrderView(APIView):
 
     def get(self, request, format=None):
         """This method retrieve a single user order made for today's meal list"""
-        if request.user.id != None:
-            order_list = ComUserChoice.objects.filter(day_num=day_num, month=month, year=year, user=request.user.id)
 
-            if order_list:
-                serializer = MealOrderSerializer3(order_list, many=True)
+        order_list = ComUserChoice.objects.filter(day_num=day_num, month=month, year=year, user=2)
 
-                data = {
-                    'message': 'success',
-                    'order date': f'{day_num}-{month}-{year}',
-                    'data': serializer.data
-                }
-                    
-                return Response(data, status = status.HTTP_200_OK) 
-            
-            else:
-                return Response(data={"message": "There is no order made by this user for today's meal"}, status=status.HTTP_400_BAD_REQUEST)
+        if order_list:
+            serializer = MealOrderSerializer3(order_list, many=True)
+
+            data = {
+                'message': 'success',
+                'order date': f'{day_num}-{month}-{year}',
+                'data': serializer.data
+            }
+                
+            return Response(data, status = status.HTTP_200_OK) 
+        
         else:
-            raise PermissionDenied(detail={'message':'non-company users are not allowed to access this page'})
+            return Response(data={"message": "There is no order made by this user for today's meal"}, status=status.HTTP_400_BAD_REQUEST)
 
     @swagger_auto_schema(method='post', request_body=MealOrderSerializer())
     @action(methods=['POST'], detail=True)
@@ -189,19 +241,18 @@ class MealOrderView(APIView):
                         serializer = MealOrderSerializer2(data=data)
                         
                         if serializer.is_valid():
+                            try:
+                                vendor = VendorMeal.objects.get(meal=serializer.validated_data['meal_order'], day_num=day_num, month=month)
+                                if vendor:
+                                    serializer.save()
+                                    
+                                    data = {
+                                        "message":"success"
+                                    }
 
-                            vendor = VendorMeal.objects.get(meal=serializer.validated_data['meal_order'], day=day, month=month)
-                            print(vendor)
-                            if vendor:
-                                serializer.save()
-                                
-                                data = {
-                                    "message":"success"
-                                }
-
-                                return Response(data, status = status.HTTP_200_OK)
-                            else:
-                                raise NotFound(detail={'message': 'meal item with id does not exist'})
+                                    return Response(data, status = status.HTTP_200_OK)
+                            except VendorMeal.DoesNotExist:
+                                raise NotFound(detail={'message': 'meal item with id is not available'})
 
                         else:
                             data = {
@@ -226,13 +277,18 @@ class MealOrderView(APIView):
             serializer = MealOrderSerializer2(order, data=request.data, partial=True)
             
             if serializer.is_valid():
-                serializer.save()
-                
-                data = {
-                    "message":"success"
-                }
+                try:
+                    vendor = VendorMeal.objects.get(meal=serializer.validated_data['meal_order'], day_num=day_num, month=month)
+                    if vendor:
+                        serializer.save()
+                        
+                        data = {
+                            "message":"success"
+                        }
 
-                return Response(data, status = status.HTTP_200_OK)
+                        return Response(data, status = status.HTTP_200_OK)
+                except VendorMeal.DoesNotExist:
+                    raise NotFound(detail={'message': 'meal item with id is not available'})
 
             else:
                 data = {
@@ -260,6 +316,8 @@ class MealOrderView(APIView):
 
 @swagger_auto_schema(method="get")
 @api_view(["GET"])
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsVendor])
 def get_all_order(request):
     """This method retrieve all orders made for today's meal list"""
     if request.method == "GET":
@@ -343,7 +401,6 @@ class VendorListEdit(APIView):
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsVendor]
 
-
     @swagger_auto_schema(method='put', request_body=VendorSerializer2())
     @action(methods=['PUT'], detail=True)
     def put(self, request, item_id, format=None):
@@ -391,47 +448,52 @@ class VendorListEdit(APIView):
         except:
             raise NotFound(detail={'message': 'There is no vendor item with given id'})
 
+class UserMonthlyHistoryAdmin(APIView):
+
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAdminOnly]
+
+    def get(self, request, user_id, month, year, format=None):
+        """This method retrieve a single user order made for the provide year and month meal list. only accessible by the admin"""
+
+        order_list = ComUserChoice.objects.filter(month=month.capitalize(), year=year, user=user_id)
+
+        if order_list:
+            serializer = MealOrderSerializer4(order_list, many=True)
+
+            data = {
+                'message': 'success',
+                'order_count': order_list.count(),
+                'order month': f'{month.capitalize()}-{year}',
+                'data': serializer.data
+            }
+                
+            return Response(data, status = status.HTTP_200_OK) 
+        
+        else:
+            return Response(data={"message": "There is no order made by this user for the month provided"}, status=status.HTTP_400_BAD_REQUEST)
 
 class UserMonthlyHistory(APIView):
 
-    def get(self, request, month, year=None, format=None):
-        """This method retrieve a single user order made for today's meal list"""
-        if request.user.id != None:
-            if year != '':
-                order_list = ComUserChoice.objects.filter(month=month.capitalize(), year=year, user=request.user.id)
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsUser]
+    
+    def get(self, request, month, year, format=None):
+        """This method retrieve a single logged in user order made for the provided year and month meal list"""
 
-                if order_list:
-                    serializer = MealOrderSerializer4(order_list, many=True)
+        order_list = ComUserChoice.objects.filter(month=month.capitalize(), year=year, user=request.user.id)
 
-                    data = {
-                        'message': 'success',
-                        'order_count': order_list.count(),
-                        'order month': f'{month}-{year}',
-                        'data': serializer.data
-                    }
-                        
-                    return Response(data, status = status.HTTP_200_OK) 
+        if order_list:
+            serializer = MealOrderSerializer4(order_list, many=True)
+
+            data = {
+                'message': 'success',
+                'order_count': order_list.count(),
+                'order month': f'{month.capitalize()}-{year}',
+                'data': serializer.data
+            }
                 
-                else:
-                    return Response(data={"message": "There is no order made by this user for the month provided"}, status=status.HTTP_400_BAD_REQUEST)
-
-            else:
-                order_list = ComUserChoice.objects.filter(month=month, user=request.user.id)
-
-                if order_list:
-                    serializer = MealOrderSerializer4(order_list, many=True)
-
-                    data = {
-                        'message': 'success',
-                        'order month': f'{month}-{year}',
-                        'data': serializer.data
-                    }
-                        
-                    return Response(data, status = status.HTTP_200_OK) 
-                
-                else:
-                    return Response(data={"message": "There is no order made by this user for this month"}, status=status.HTTP_400_BAD_REQUEST)
-
+            return Response(data, status = status.HTTP_200_OK) 
+        
         else:
-            raise PermissionDenied(detail={'message':'non-company users are not allowed to access this page'})
-
+            return Response(data={"message": "There is no order made by this user for the month provided"}, status=status.HTTP_400_BAD_REQUEST)

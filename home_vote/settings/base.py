@@ -166,12 +166,16 @@ DJOSER = {
     'HIDE_USERS': False,
     'PERMISSIONS': {
 
-    'user': ['rest_framework.permissions.IsAuthenticated'],
-    'user_list': ['rest_framework.permissions.IsAuthenticated'],
+    'user': ['rest_framework.permissions.IsAdminUser'],
+    'user_list': ['rest_framework.permissions.IsAdminUser'],
+    'user_create': ['rest_framework.permissions.IsAdminUser'],
+    'user_delete': ['rest_framework.permissions.IsAdminUser'],
+    'token_create': ['rest_framework.permissions.AllowAny'],
+    'token_destroy': ['rest_framework.permissions.IsAuthenticated'],
+
     },
     'SERIALIZERS': {
         'user': 'home_accounts.serializers.CustomUserSerializer',
-
     }
 }
 

@@ -37,8 +37,11 @@ class MealListSerializer2(serializers.ModelSerializer):
         model = MealList
         fields = '__all__'
 
-class MealOrderSerializer(serializers.Serializer):
-    meal_order = serializers.CharField(max_length=100)
+class MealOrderSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = ComUserChoice
+        fields = ['meal_order']
 
 class MealOrderSerializer2(serializers.ModelSerializer):
 
@@ -55,8 +58,9 @@ class MealOrderSerializer3(serializers.ModelSerializer):
         fields = ['id', 'meal_order', 'meal_list', 'meal', 'user', 'user_info', 'time_order']
 
 class MealOrderSerializer4(serializers.ModelSerializer):
+    meal = serializers.ReadOnlyField()
 
     class Meta:
         model = ComUserChoice
-        fields = ['id','day_num', 'meal_order']
+        fields = ['id','day_num', 'meal_order', 'meal']
 

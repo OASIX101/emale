@@ -7,5 +7,6 @@ urlpatterns = [
     path('vendor-edit/<int:item_id>/', views.VendorListEdit().as_view(), name='vendor-edit'),
     path('vendor-meal/', views.VendorListView.as_view(), name='vendor-meal'),
     path('all-orders/', views.get_all_order, name='pending-meal'),
-    path('user-history/<str:month>/<int:year>/', views.UserMonthlyHistory.as_view(), name='user_history'),
+    path('user-history/<int:user_id>/<str:month>/<int:year>/', views.UserMonthlyHistoryAdmin.as_view(), name='user_history'),
+    path('user-history/<str:month>/<int:year>/', views.UserMonthlyHistory.as_view(), name='user_loggedin_history'),
 ]

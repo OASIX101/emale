@@ -33,8 +33,8 @@ class CreateUser(APIView):
 
 @swagger_auto_schema(method="get")
 @api_view(["GET"])
-# @authentication_classes([JWTAuthentication])
-# @permission_classes([IsUserAuthenticated])
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsAdminOnly])
 def get_staff_vendor(request):
     """Gets all the admin user and vendor user that are in the database"""
 
@@ -56,7 +56,7 @@ class UserEdit(APIView):
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAdminOnly]
 
-    def get_user(user_id):
+    def get_user(self, user_id):
         """This checks if the user id provided is a existing user"""
         try:
             return CustomUser.objects.get(id=user_id)
@@ -73,31 +73,21 @@ class UserEdit(APIView):
 
             return Response(status=status.HTTP_204_NO_CONTENT)
 
-    @swagger_auto_schema(method="put", request_body=CustomUserSerializer())
-    @action(methods=["PUT"], detail=True)
-    def put(self, request, user_id, format=None):
-        if request.method == "PUT" or request.method == "PATCH":
-            obj = self.get_user(user_id)
-            serializer = CustomUserSerializer(obj, data=request.data, partial=True)
+    def get(self, request, user_id, format=None):
+        """This method is used to deactivate a user from the database"""
+        obj = self.get_user(user_id)
+        obj.is_active = False
+        obj.save()
 
-            if serializer.is_valid():
-                serializer.save()
 
-                data = {
-                    'message': 'update successful',
-                    'data': CustomUserSerializer(self.get_user(user_id)).data
-                }
+        data = {
+            'message': 'user successfully deactivated',
+            'data': CustomUserSerializer(self.get_user(user_id)).data,
+            'is_active': self.get_user(user_id).is_active
+        }
 
-                return Response(data, status=status.HTTP_200_OK)
-
-            else:
-                data = {
-                    'message': 'update failed',
-                    'error': serializer.errors
-                }
-
-                return Response(data, status=status.HTTP_400_BAD_REQUEST)
-        
+        return Response(data, status=status.HTTP_200_OK)
+    
 @swagger_auto_schema(method='post', request_body=LogInSerializer)
 @api_view(['POST'])
 def login_view(request):
@@ -174,3 +164,24 @@ def logout_view(request):
     except TokenError:
         return Response({"message": "failed", "error": "Invalid refresh token"}, status=status.HTTP_400_BAD_REQUEST)
 
+@swagger_auto_schema(method="get")
+@api_view(["GET"])
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsAdminOnly])
+def activate(request, user_id):
+    """This method is used to activate a user from the database"""
+    try:
+        obj = CustomUser.objects.get(id=user_id)
+        obj.is_active = True
+        obj.save()
+
+
+        data = {
+            'message': 'user successfully activated',
+            'data': CustomUserSerializer(obj).data,
+            'is_active': obj.is_active
+        }
+
+        return Response(data, status=status.HTTP_200_OK)
+    except CustomUser.DoesNotExist:
+        raise NotFound(detail={'message': 'user not found'})

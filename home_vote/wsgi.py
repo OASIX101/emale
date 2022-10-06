@@ -13,7 +13,7 @@ load_dotenv(find_dotenv())
 
 from django.core.wsgi import get_wsgi_application
 
-configuration = os.getenv('ENVIRONMENT')
+configuration = os.getenv('ENVIRONMENT').lower()
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', f'home_vote.settings.{configuration}')
 
 application = get_wsgi_application()

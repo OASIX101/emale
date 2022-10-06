@@ -7,5 +7,6 @@ urlpatterns = [
     path('logout/', views.logout_view, name='logout'),
     path('user-edit/<int:user_id>/', views.UserEdit().as_view(), name='user-edit'),
     path('staff-vendor/', views.get_staff_vendor, name='get-staff-vendor'),
+    path('activate/<int:user_id>/', views.activate, name='activate'),
     path('auth/', include('djoser.urls'))
 ]
