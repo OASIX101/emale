@@ -339,8 +339,8 @@ def get_all_order(request):
 
 class VendorListView(APIView):
 
-    # authentication_classes = [JWTAuthentication]
-    # permission_classes = [IsVendor]
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsVendor]
 
     def get(self, request, format=None):
         """This method retrieves the  list of meal items for that day posted by the vendor.

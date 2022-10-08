@@ -1,8 +1,9 @@
 from rest_framework import serializers
 from .models import MealList, ComUserChoice, VendorMeal
 
-class VendorSerializer(serializers.ModelSerializer):
 
+class VendorSerializer(serializers.ModelSerializer):
+    
     class Meta:
         model = VendorMeal
         fields = '__all__'
@@ -13,6 +14,7 @@ class VendorSerializer2(serializers.ModelSerializer):
     class Meta:
         model = VendorMeal
         fields = ['id', 'meal', 'price', 'image']
+        write_only_fields = ['image']
 
 class MealListSerializer(serializers.ModelSerializer):
 
