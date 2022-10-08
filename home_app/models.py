@@ -5,6 +5,7 @@ from home_accounts.models import CustomUser
 class VendorMeal(models.Model):
     meal = models.CharField(max_length=255, unique=True)
     price = models.FloatField(default=0.0)
+    image = models.ImageField(upload_to='MealImages/%Y/%m/%d/')
     day = models.CharField(max_length=100) 
     day_num = models.IntegerField()
     month = models.CharField(max_length=100)
@@ -57,7 +58,7 @@ class ComUserChoice(models.Model):
         return model_to_dict(self.user, fields=['username', 'gender'])
 
     def __str__(self):
-        return self.meal_order
+        return f'{self.user}-{self.meal_order}'
 
      
 

@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'drf_yasg',
     'djoser',
+    'cloudinary',
 ]
 
 MIDDLEWARE = [
@@ -181,3 +182,11 @@ DJOSER = {
 
 STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 STATIC_FILE_STORAGE= 'whitenoise.storage.CompressedManifestStaticFileStorage'
+
+CLOUDINARY_STORAGE = {
+    'CLOUD_NAME': os.getenv('CLOUD_NAME'),
+    'API_KEY': os.getenv('API_KEY'),
+    'API_SECRET': os.getenv('API_SECRET_KEY'),
+}
+
+DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'

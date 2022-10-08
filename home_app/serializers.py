@@ -1,8 +1,6 @@
 from rest_framework import serializers
 from .models import MealList, ComUserChoice, VendorMeal
 
-
-
 class VendorSerializer(serializers.ModelSerializer):
 
     class Meta:
@@ -14,7 +12,7 @@ class VendorSerializer2(serializers.ModelSerializer):
 
     class Meta:
         model = VendorMeal
-        fields = ['id', 'meal', 'price']
+        fields = ['id', 'meal', 'price', 'image']
 
 class MealListSerializer(serializers.ModelSerializer):
 
